@@ -10,11 +10,11 @@ import "core:strconv"
 import "core:unicode/utf8"
 import "core:bytes"
 
-test :: true
+test :: false
 
 main :: proc() {
     now := time.now()
-    t3()
+    t4()
     fmt.println(time.since(now))
 }
 
@@ -212,4 +212,90 @@ t3 :: proc() {
 
     fmt.println()
     fmt.println(agg)
+}
+
+t4 :: proc() {
+    dataRaw := loadFile(4)
+
+    rowsRaw := strings.split_lines(dataRaw)
+
+    grid := make([dynamic][dynamic]int, len(rowsRaw))
+
+    for row, x in rowsRaw {
+        grid[x] = make([dynamic]int, len(row))
+        for ch, y in row {
+            val : int
+            switch ch {
+            case 'X':
+                val = 1
+            case 'M':
+                val = 2
+            case 'A':
+                val = 3
+            case 'S':
+                val = 4
+            }
+            grid[x][y] = val
+        }
+    }
+    wordAgg := 0
+
+    s_fw, s_bw := 0, 5
+    s_dw, s_uw := 0, 5
+    for x := 0; x < len(grid); x += 1 {
+        for y := 0; y < len(grid[0]); y += 1 {
+            wordAgg += evalStateCnt(&s_fw, &s_bw, &grid, x, y)
+            wordAgg += evalStateCnt(&s_dw, &s_uw, &grid, y, x)
+        }
+    }
+
+    //diagonal one way
+    s_fw, s_bw = 0, 5
+    s_dw, s_uw = 0, 5
+    for start_x := 0; start_x < len(grid); start_x += 1 {
+        x, y : int = start_x, 0
+        for x >= 0 {
+            wordAgg += evalStateCnt(&s_fw, &s_bw, &grid, x, y)
+            wordAgg += evalStateCnt(&s_dw, &s_uw, &grid, y, x)
+            x-=1
+            y+=1
+        }
+    }
+    s_fw, s_bw = 0, 5
+    s_dw, s_uw = 0, 5
+    for start_y := 1; start_y < len(grid[0]); start_y += 1 {
+        x, y : int = len(grid)-1, start_y
+        for y < len(grid[0]) {
+            wordAgg += evalStateCnt(&s_fw, &s_bw, &grid, x, y)
+            wordAgg += evalStateCnt(&s_dw, &s_uw, &grid, y, x)
+            x-=1
+            y+=1
+        }
+    }
+
+    fmt.println(wordAgg)
+}
+
+evalStateCnt :: proc (s_fw: ^int, s_bw: ^int, grid: ^[dynamic][dynamic]int, x: int, y: int) -> int {
+    agg := 0
+    if s_fw^ + 1 == grid[x][y] {
+        s_fw^ += 1
+        if s_fw^ == 4 {
+            agg += 1
+            s_fw^ = 0
+        }
+    } else {
+        s_fw^ = grid[x][y] == 1 ? 1 : 0
+    }
+    if s_bw^ - 1 == grid[x][y] {
+        s_bw^ -= 1
+        if s_bw^ == 1 {
+            agg += 1
+            s_bw^ = 5
+        }
+    } else {
+        s_bw^ = grid[x][y] == 4 ? 4 : 5
+    }
+
+    return agg
 }

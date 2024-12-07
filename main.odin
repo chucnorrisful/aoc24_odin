@@ -346,6 +346,7 @@ t5 :: proc() {
     data := loadFile(5)
 
     rules : [100][dynamic]int
+    rules_bw : [100][dynamic]int
     lists := make([dynamic][dynamic]int, 0)
 
     parseRules := true
@@ -357,6 +358,7 @@ t5 :: proc() {
 
         if parseRules {
             append(&rules[strconv.atoi(line[:2])], strconv.atoi(line[3:]))
+            append(&rules_bw[strconv.atoi(line[3:])], strconv.atoi(line[:2]))
         } else {
             splitted := strings.split(line, ",")
             li := make([dynamic]int, len(splitted))
@@ -367,6 +369,24 @@ t5 :: proc() {
         }
     }
 
+    agg := 0
+    for list in lists {
+        valid := true
+        checkAllEles: for ele, i in list {
+            eleRules := rules_bw[ele][:]
 
+            for j := i+1; j < len(list); j += 1 {
+                if slice.contains(eleRules, list[j]) {
+                    valid = false
+                    break checkAllEles
+                }
+            }
+        }
 
+        if valid {
+            agg += list[len(list)/2]
+        }
+    }
+
+    fmt.println(agg)
 }

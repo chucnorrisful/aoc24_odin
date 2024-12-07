@@ -220,29 +220,38 @@ t4 :: proc() {
     rowsRaw := strings.split_lines(dataRaw)
 
     grid := make([dynamic][dynamic]int, len(rowsRaw))
+    grid2 := make([dynamic][dynamic]int, len(rowsRaw)+2)
+    grid2[0] = make([dynamic]int, len(rowsRaw[0])+2)
+    grid2[len(rowsRaw)+1] = make([dynamic]int, len(rowsRaw[0])+2)
+
 
     for row, x in rowsRaw {
         grid[x] = make([dynamic]int, len(row))
+        grid2[x+1] = make([dynamic]int, len(row)+2)
         for ch, y in row {
-            val : int
+            val, val2 : int
             switch ch {
             case 'X':
                 val = 1
             case 'M':
                 val = 2
+                val2 = 1
             case 'A':
                 val = 3
+                val2 = -1
             case 'S':
                 val = 4
+                val2 = 2
             }
             grid[x][y] = val
+            grid2[x+1][y+1] = val2
         }
     }
     wordAgg := 0
 
-    s_fw, s_bw := 0, 5
-    s_dw, s_uw := 0, 5
     for x := 0; x < len(grid); x += 1 {
+        s_fw, s_bw := 0, 5
+        s_dw, s_uw := 0, 5
         for y := 0; y < len(grid[0]); y += 1 {
             wordAgg += evalStateCnt(&s_fw, &s_bw, &grid, x, y)
             wordAgg += evalStateCnt(&s_dw, &s_uw, &grid, y, x)
@@ -250,26 +259,60 @@ t4 :: proc() {
     }
 
     //diagonal one way
-    s_fw, s_bw = 0, 5
-    s_dw, s_uw = 0, 5
     for start_x := 0; start_x < len(grid); start_x += 1 {
+        s_fw, s_bw := 0, 5
+        s_dw, s_uw := 0, 5
         x, y : int = start_x, 0
         for x >= 0 {
             wordAgg += evalStateCnt(&s_fw, &s_bw, &grid, x, y)
-            wordAgg += evalStateCnt(&s_dw, &s_uw, &grid, y, x)
             x-=1
             y+=1
         }
     }
-    s_fw, s_bw = 0, 5
-    s_dw, s_uw = 0, 5
     for start_y := 1; start_y < len(grid[0]); start_y += 1 {
+        s_fw, s_bw := 0, 5
+        s_dw, s_uw := 0, 5
         x, y : int = len(grid)-1, start_y
         for y < len(grid[0]) {
             wordAgg += evalStateCnt(&s_fw, &s_bw, &grid, x, y)
-            wordAgg += evalStateCnt(&s_dw, &s_uw, &grid, y, x)
             x-=1
             y+=1
+        }
+    }
+
+    //diagonal other way
+    for start_x := 0; start_x < len(grid); start_x += 1 {
+        s_fw, s_bw := 0, 5
+        s_dw, s_uw := 0, 5
+        x, y : int = start_x, 0
+        for x < len(grid) {
+            wordAgg += evalStateCnt(&s_fw, &s_bw, &grid, x, y)
+            x+=1
+            y+=1
+        }
+    }
+    for start_y := 1; start_y < len(grid[0]); start_y += 1 {
+        s_fw, s_bw := 0, 5
+        s_dw, s_uw := 0, 5
+        x, y : int = 0, start_y
+        for y < len(grid[0]) {
+            wordAgg += evalStateCnt(&s_fw, &s_bw, &grid, x, y)
+            x+=1
+            y+=1
+        }
+    }
+
+    fmt.println(wordAgg)
+
+    wordAgg = 0
+    for x := 0; x < len(grid2); x += 1 {
+        for y := 0; y < len(grid2[0]); y += 1 {
+            if grid2[x][y] == -1 {
+                if grid2[x-1][y-1] + grid2[x+1][y+1] == 3 &&
+                    grid2[x+1][y-1] + grid2[x-1][y+1] == 3 {
+                    wordAgg += 1
+                }
+            }
         }
     }
 

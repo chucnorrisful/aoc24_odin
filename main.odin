@@ -10,11 +10,11 @@ import "core:strconv"
 import "core:unicode/utf8"
 import "core:bytes"
 
-test :: false
+test :: true
 
 main :: proc() {
     now := time.now()
-    t4()
+    t5()
     fmt.println(time.since(now))
 }
 
@@ -318,7 +318,6 @@ t4 :: proc() {
 
     fmt.println(wordAgg)
 }
-
 evalStateCnt :: proc (s_fw: ^int, s_bw: ^int, grid: ^[dynamic][dynamic]int, x: int, y: int) -> int {
     agg := 0
     if s_fw^ + 1 == grid[x][y] {
@@ -341,4 +340,33 @@ evalStateCnt :: proc (s_fw: ^int, s_bw: ^int, grid: ^[dynamic][dynamic]int, x: i
     }
 
     return agg
+}
+
+t5 :: proc() {
+    data := loadFile(5)
+
+    rules : [100][dynamic]int
+    lists := make([dynamic][dynamic]int, 0)
+
+    parseRules := true
+    for line in strings.split_lines_iterator(&data) {
+        if line == "" {
+            parseRules = false
+            continue
+        }
+
+        if parseRules {
+            append(&rules[strconv.atoi(line[:2])], strconv.atoi(line[3:]))
+        } else {
+            splitted := strings.split(line, ",")
+            li := make([dynamic]int, len(splitted))
+            for sp, i in splitted {
+                li[i] = strconv.atoi(sp)
+            }
+            append(&lists, li)
+        }
+    }
+
+
+
 }

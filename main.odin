@@ -10,11 +10,11 @@ import "core:strconv"
 import "core:unicode/utf8"
 import "core:bytes"
 
-test :: true
+test :: false
 
 main :: proc() {
     now := time.now()
-    t5()
+    t6()
     fmt.println(time.since(now))
 }
 
@@ -342,12 +342,15 @@ evalStateCnt :: proc (s_fw: ^int, s_bw: ^int, grid: ^[dynamic][dynamic]int, x: i
     return agg
 }
 
+rulebook : ^[100][dynamic]int
+rulebook_bw : ^[100][dynamic]int
 t5 :: proc() {
     data := loadFile(5)
 
     rules : [100][dynamic]int
     rules_bw : [100][dynamic]int
     lists := make([dynamic][dynamic]int, 0)
+    listsBad := make([dynamic][dynamic]int, 0)
 
     parseRules := true
     for line in strings.split_lines_iterator(&data) {
@@ -368,6 +371,8 @@ t5 :: proc() {
             append(&lists, li)
         }
     }
+    rulebook = &rules
+    rulebook_bw = &rules_bw
 
     agg := 0
     for list in lists {
@@ -385,8 +390,117 @@ t5 :: proc() {
 
         if valid {
             agg += list[len(list)/2]
+        } else {
+            append(&listsBad, list)
         }
     }
 
     fmt.println(agg)
+
+    agg = 0
+    for li in listsBad {
+        list := li[:]
+        slice.sort_by_cmp(list, proc(i, j: int) -> slice.Ordering{
+            if slice.contains(rulebook[i][:], j) {
+                return slice.Ordering.Less
+            }
+            if slice.contains(rulebook_bw[i][:], j) {
+                return slice.Ordering.Greater
+            }
+            return slice.Ordering.Equal
+        })
+        agg += list[len(list)/2]
+    }
+
+    fmt.println(agg)
+}
+
+t6 :: proc() {
+    data := loadFile(6)
+
+    dirs :: enum {UP, RIGHT, DOWN, LEFT}
+
+    grid := make([dynamic][dynamic]int, 0)
+    pos := [2]int{0, 0}
+    dir := dirs.UP
+    foundStart := false
+    for line in strings.split_lines_iterator(&data) {
+        g_line := make([dynamic]int, 0)
+        if !foundStart do pos.y = 0
+        for ch in line {
+            val := 0
+            switch ch {
+            case '#':
+                val = 1
+            case '^':
+                foundStart = true
+            }
+
+            if !foundStart do pos.y += 1
+            append(&g_line, val)
+        }
+        if !foundStart do pos.x += 1
+        append(&grid, g_line)
+    }
+    grid2 := make([dynamic][dynamic]int, len(grid))
+    for line, i in grid {
+        grid2[i] = make([dynamic]int, len(line))
+    }
+    fmt.println("Starting at:", pos)
+    grid2[pos.x][pos.y] = 1
+
+    move :: proc(pos: [2]int, dir: dirs)-> [2]int {
+        newPos := pos
+        switch dir {
+        case .UP:
+            newPos.x -= 1
+        case .RIGHT:
+            newPos.y += 1
+        case .DOWN:
+            newPos.x += 1
+        case .LEFT:
+            newPos.y -= 1
+        }
+        return newPos
+    }
+    checkBounds :: proc(pos: [2]int, grid: ^[dynamic][dynamic]int) -> bool {
+        return pos.x >= 0 && pos.y >= 0 && pos.x < len(grid) && pos.y < len(grid[0])
+    }
+    nextDir :: proc(dir: dirs)->dirs {
+        switch dir {
+        case .UP:
+            return .RIGHT
+        case .RIGHT:
+            return .DOWN
+        case .DOWN:
+            return .LEFT
+        case .LEFT:
+        }
+        return .UP
+    }
+
+    for {
+        newPos := move(pos, dir)
+        if !checkBounds(newPos, &grid) do break
+
+        if grid[newPos.x][newPos.y] == 1 {
+            dir = nextDir(dir)
+            continue
+        }
+
+        pos = newPos
+        grid2[pos.x][pos.y] += 1
+    }
+
+    agg := 0
+    for x := 0; x < len(grid2); x += 1 {
+        for y := 0; y < len(grid2[0]); y += 1 {
+            if grid2[x][y] != 0 {
+                agg += 1
+            }
+        }
+    }
+    fmt.println(agg)
+
+
 }
